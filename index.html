@@ -313,15 +313,29 @@
 <canvas class="confetti" id="confetti"></canvas>
 <div class="toast" id="toast"></div>
 
-<script>
+<script type="module">
+  // Firebase web config (public by design; access is controlled by Firestore rules).
+  // Set to null to save points only in this browser.
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAXexzvsL9BQwSAYRtOKgWYFuwkJqdX7kg",
+    authDomain: "points-21e06.firebaseapp.com",
+    projectId: "points-21e06",
+    storageBucket: "points-21e06.firebasestorage.app",
+    messagingSenderId: "905417687969",
+    appId: "1:905417687969:web:b68d3f3712b30f5f0e41e0",
+  };
+
   const PER_CARD = 10;
   const KEY = "points-v1";
   const STAR = '<svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.5 1.3 6.6L12 17.2l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>';
 
-  // { points: [{ t: timestamp, why: string, r: rotation }] }
+  // { points: [{ id?: cloud doc id, t: timestamp, why: string, r: rotation }] }
   let state = { points: [] };
   try { state = JSON.parse(localStorage.getItem(KEY)) || state; } catch (e) {}
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+  const save = () => { if (!cloud) try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+
+  // Set once Firebase connects: { add(point), remove(id), clear() }
+  let cloud = null;
 
   const $ = (id) => document.getElementById(id);
   const fmt = (t, opts) => new Date(t).toLocaleDateString(undefined, opts);
@@ -429,19 +443,24 @@
     $("sheet").classList.remove("open");
   }
   function addPoint() {
-    const why = $("reason").value.trim();
-    state.points.push({ t: Date.now(), why, r: Math.round(Math.random() * 30 - 15) });
-    save();
+    const point = { t: Date.now(), why: $("reason").value.trim(), r: Math.round(Math.random() * 30 - 15) };
     closeSheet();
     $("card").scrollIntoView({ behavior: "smooth", block: "center" });
     setTimeout(() => {
+      // In cloud mode the live listener renders the new stamp
+      if (cloud) { cloud.add(point).catch(() => toast("Couldn't save, check your connection")); return; }
+      state.points.push(point);
+      save();
       render(true);
-      if (state.points.length % PER_CARD === 0) {
-        setTimeout(() => { confetti(); toast("Card complete! 🎉"); }, 450);
-      } else {
-        toast("Point stamped ✦");
-      }
+      celebrate();
     }, 350);
+  }
+  function celebrate() {
+    if (state.points.length % PER_CARD === 0) {
+      setTimeout(() => { confetti(); toast("Card complete! 🎉"); }, 450);
+    } else {
+      toast("Point stamped ✦");
+    }
   }
 
   $("addBtn").onclick = openSheet;
@@ -452,10 +471,13 @@
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
   $("undoBtn").onclick = () => {
     if (!state.points.length) return;
+    if (cloud) { cloud.remove(state.points.at(-1).id).then(() => toast("Last point removed")); return; }
     state.points.pop(); save(); render(); toast("Last point removed");
   };
   $("resetBtn").onclick = () => {
-    if (confirm("Remove all points and start over?")) { state.points = []; save(); render(); }
+    if (!confirm("Remove all points and start over?")) return;
+    if (cloud) { cloud.clear(); return; }
+    state.points = []; save(); render();
   };
 
   let toastTimer;
@@ -526,6 +548,52 @@
 
   render();
   onScroll();
+
+  /* ---------- Firebase sync (same card on every device) ---------- */
+  async function connectCloud() {
+    const v = "10.12.2";
+    const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-app.js`);
+    const fs = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-firestore.js`);
+    const db = fs.getFirestore(initializeApp(FIREBASE_CONFIG));
+    const col = fs.collection(db, "points");
+
+    cloud = {
+      add: (p) => fs.addDoc(col, { t: p.t, why: p.why, r: p.r }),
+      remove: (id) => fs.deleteDoc(fs.doc(col, id)),
+      clear: async () => {
+        const batch = fs.writeBatch(db);
+        state.points.forEach(p => batch.delete(fs.doc(col, p.id)));
+        await batch.commit();
+      },
+    };
+
+    // Points saved in this browser before syncing was set up
+    const localPoints = state.points;
+    let first = true;
+
+    fs.onSnapshot(fs.query(col, fs.orderBy("t")), async (snap) => {
+      const prev = state.points.length;
+      state.points = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      if (first) {
+        first = false;
+        if (!state.points.length && localPoints.length) {
+          await Promise.all(localPoints.map(p => cloud.add(p)));
+          try { localStorage.removeItem(KEY); } catch (e) {}
+          return; // the listener fires again with the uploaded points
+        }
+        render();
+        return;
+      }
+      const added = state.points.length > prev;
+      render(added);
+      if (added) celebrate();
+    }, () => toast("Couldn't load points from the cloud"));
+  }
+
+  if (FIREBASE_CONFIG) {
+    connectCloud().catch(() => { cloud = null; toast("Offline: saving on this device only"); });
+  }
 </script>
 </body>
 </html>

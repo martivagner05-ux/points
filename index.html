@@ -177,6 +177,36 @@
   footer button { color: var(--accent-deep); font-size: 13px; margin-left: 6px; }
   footer button:hover { text-decoration: underline; }
 
+  /* ---------- Rewards ---------- */
+  .section-sub b { color: var(--accent-deep); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .rewards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; max-width: 880px; margin: 56px auto 0; }
+  .reward {
+    position: relative; background: #fbfbfd; border-radius: 24px; padding: 22px 20px 20px;
+    display: flex; flex-direction: column; gap: 12px; text-align: left; min-height: 210px;
+    transition: transform .4s var(--spring), box-shadow .3s;
+  }
+  .reward.anim { animation: tileIn .7s var(--ease) both; }
+  @keyframes tileIn { from { opacity: 0; transform: translateY(24px); } }
+  .reward:hover { transform: translateY(-4px); box-shadow: 0 18px 40px -24px rgba(15, 124, 83, .45); }
+  .reward .cost { align-self: flex-start; font-size: 13px; font-weight: 700; color: var(--accent-deep); background: var(--accent-soft); padding: 5px 11px; border-radius: 999px; }
+  .reward .rname { flex: 1; font-size: 21px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; overflow-wrap: anywhere; }
+  .reward .meter { height: 6px; border-radius: 99px; background: var(--accent-soft); overflow: hidden; }
+  .reward .meter i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .8s var(--ease); }
+  .reward .btn { font-size: 15px; padding: 11px 18px; }
+  .reward .btn:disabled { opacity: 1; background: var(--accent-soft); color: var(--accent-deep); box-shadow: none; }
+  .reward .edit { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 50%; color: var(--muted); font-size: 15px; transition: background .2s, color .2s; }
+  .reward .edit:hover { background: #eceef1; color: var(--ink); }
+  .reward.add { border: 2px dashed #a8d5c1; background: transparent; align-items: center; justify-content: center; color: var(--accent-deep); font-weight: 700; font-size: 17px; }
+  .reward.add:hover { background: var(--accent-soft); box-shadow: none; }
+  .spent-title { max-width: 720px; margin: 72px auto 0; font-size: 24px; font-weight: 800; letter-spacing: -.03em; }
+  .spent-title + .history { margin-top: 12px; }
+  .mini.gift { background: var(--accent-soft); }
+  .mini.gift svg { fill: var(--accent-deep); }
+  .history .cost-tag { font-weight: 700; color: var(--accent-deep); font-variant-numeric: tabular-nums; }
+  .history .x { flex: none; width: 30px; height: 30px; border-radius: 50%; color: var(--muted); font-size: 18px; transition: background .2s, color .2s; }
+  .history .x:hover { background: #eceef1; color: var(--ink); }
+  .empty.small { margin-top: 16px; font-size: 15px; }
+
   /* ---------- Sheet (add-a-point dialog) ---------- */
   .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.25); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity .4s var(--ease); z-index: 90; }
   .scrim.open { opacity: 1; pointer-events: auto; }
@@ -200,6 +230,11 @@
   }
   .sheet input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
   .sheet .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+  .sheet .fields { display: flex; gap: 10px; }
+  .sheet .fields input:first-child { flex: 1; min-width: 0; }
+  .sheet .fields input[type=number] { width: 110px; flex: none; }
+  .sheet .danger { color: #b3261e; margin-right: auto; }
+  .sheet .danger:hover { background: #fdecea; }
 
   /* ---------- Full-card celebration ---------- */
   .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 120; }
@@ -230,6 +265,7 @@
     <div class="logo"><span class="logo-dot"></span>Points</div>
     <div class="nav-links">
       <a href="#card">Card</a>
+      <a href="#rewards">Rewards</a>
       <a href="#stats">Stats</a>
       <a href="#history">History</a>
     </div>
@@ -274,6 +310,17 @@
   </div>
 </section>
 
+<section id="rewards">
+  <div class="wrap">
+    <h2 class="section-title reveal">Rewards.</h2>
+    <p class="section-sub reveal">You have <b id="balance">0</b> points to spend.</p>
+    <div class="rewards" id="rewardList"></div>
+    <h3 class="spent-title">Spent</h3>
+    <ul class="history" id="spentList"></ul>
+    <p class="empty small" id="spentEmpty">Nothing bought yet.</p>
+  </div>
+</section>
+
 <section id="stats">
   <div class="wrap">
     <h2 class="section-title reveal">By the numbers.</h2>
@@ -305,8 +352,29 @@
   <p>What was it for? (optional)</p>
   <input id="reason" maxlength="80" placeholder="e.g. Brought her coffee" autocomplete="off">
   <div class="row">
-    <button class="btn ghost" id="cancelBtn">Cancel</button>
+    <button class="btn ghost" data-close>Cancel</button>
     <button class="btn" id="stampBtn">Stamp it</button>
+  </div>
+</div>
+<div class="sheet" id="rewardSheet" role="dialog" aria-modal="true" aria-labelledby="rewardTitle">
+  <h4 id="rewardTitle">New reward</h4>
+  <p>What can points buy, and how many does it cost?</p>
+  <div class="fields">
+    <input id="rewardName" maxlength="60" placeholder="e.g. Movie night" autocomplete="off">
+    <input id="rewardCost" type="number" min="1" max="1000" inputmode="numeric" placeholder="Points">
+  </div>
+  <div class="row">
+    <button class="btn ghost danger" id="rewardDelete">Delete</button>
+    <button class="btn ghost" data-close>Cancel</button>
+    <button class="btn" id="rewardSave">Save</button>
+  </div>
+</div>
+<div class="sheet" id="buySheet" role="dialog" aria-modal="true" aria-labelledby="buyTitle">
+  <h4 id="buyTitle">Get it?</h4>
+  <p id="buyText"></p>
+  <div class="row">
+    <button class="btn ghost" data-close>Cancel</button>
+    <button class="btn" id="buyOk">Spend points</button>
   </div>
 </div>
 
@@ -329,12 +397,17 @@
   const KEY = "points-v1";
   const STAR = '<svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.5 1.3 6.6L12 17.2l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>';
 
-  // { points: [{ id?: cloud doc id, t: timestamp, why: string, r: rotation }] }
-  let state = { points: [] };
-  try { state = JSON.parse(localStorage.getItem(KEY)) || state; } catch (e) {}
-  const save = () => { if (!cloud) try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+  const GIFT = '<svg viewBox="0 0 24 24"><path d="M20 7h-2.2A3 3 0 0 0 12 3.8 3 3 0 0 0 6.2 7H4a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8h1a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1Zm-5-2a1 1 0 1 1 0 2h-2a2 2 0 0 1 2-2ZM9 5a2 2 0 0 1 2 2H9a1 1 0 1 1 0-2Zm2 15H7v-8h4Zm0-10H5V9h6Zm6 10h-4v-8h4Zm2-10h-6V9h6Z"/></svg>';
 
-  // Set once Firebase connects: { add(point), remove(id), clear() }
+  // points:  [{ id?, t: timestamp, why: string, r: rotation }]
+  // rewards: [{ id, name, cost }]
+  // spent:   [{ id, name, cost, t }]  (buying never removes stamps)
+  let state = { points: [], rewards: [], spent: [] };
+  try { state = { ...state, ...JSON.parse(localStorage.getItem(KEY)) }; } catch (e) {}
+  const save = () => { if (!cloud) try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+  const newId = () => crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+
+  // Set once Firebase connects: points add/remove/clear, plus rewards and purchases
   let cloud = null;
 
   const $ = (id) => document.getElementById(id);
@@ -410,6 +483,113 @@
       list.appendChild(li);
     });
     $("emptyMsg").style.display = total ? "none" : "block";
+    renderShop();
+  }
+
+  /* ---------- Rewards shop ---------- */
+  const balance = () => state.points.length - state.spent.reduce((sum, s) => sum + s.cost, 0);
+  let shopShown = false;
+
+  function renderShop() {
+    const bal = balance();
+    countTo($("balance"), bal);
+
+    const list = $("rewardList");
+    list.innerHTML = "";
+    [...state.rewards].sort((a, b) => a.cost - b.cost).forEach((r, i) => {
+      const can = bal >= r.cost;
+      const el = document.createElement("div");
+      el.className = "reward" + (shopShown ? "" : " anim");
+      el.style.animationDelay = i * .07 + "s";
+      el.innerHTML = `<button class="edit" aria-label="Edit reward">✎</button>
+        <span class="cost">${r.cost} ${r.cost === 1 ? "point" : "points"}</span>
+        <div class="rname"></div>
+        <div class="meter"><i style="width:${Math.min(100, Math.max(0, bal) / r.cost * 100)}%"></i></div>
+        <button class="btn"></button>`;
+      el.querySelector(".rname").textContent = r.name;
+      const btn = el.querySelector(".btn");
+      btn.textContent = can ? "Get it" : `${r.cost - Math.max(0, bal)} more to go`;
+      btn.disabled = !can;
+      btn.onclick = () => openBuy(r);
+      el.querySelector(".edit").onclick = () => openReward(r);
+      list.appendChild(el);
+    });
+    const add = document.createElement("button");
+    add.className = "reward add" + (shopShown ? "" : " anim");
+    add.style.animationDelay = state.rewards.length * .07 + "s";
+    add.textContent = "+ Add a reward";
+    add.onclick = () => openReward(null);
+    list.appendChild(add);
+    if (state.rewards.length) shopShown = true;
+
+    const spent = $("spentList");
+    spent.innerHTML = "";
+    [...state.spent].sort((a, b) => b.t - a.t).forEach(s => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="mini gift">${GIFT}</span>
+        <span class="why"></span>
+        <span class="cost-tag">−${s.cost}</span>
+        <time>${fmt(s.t, { day: "numeric", month: "short", year: "numeric" })}</time>
+        <button class="x" aria-label="Undo this purchase">×</button>`;
+      li.querySelector(".why").textContent = s.name;
+      li.querySelector(".x").onclick = () => refund(s);
+      spent.appendChild(li);
+    });
+    $("spentEmpty").style.display = state.spent.length ? "none" : "block";
+  }
+
+  let editing = null;
+  function openReward(r) {
+    editing = r;
+    $("rewardTitle").textContent = r ? "Edit reward" : "New reward";
+    $("rewardName").value = r ? r.name : "";
+    $("rewardCost").value = r ? r.cost : "";
+    $("rewardDelete").style.display = r ? "" : "none";
+    showSheet("rewardSheet", "rewardName");
+  }
+  function saveReward() {
+    const name = $("rewardName").value.trim();
+    const cost = Math.round(+$("rewardCost").value);
+    if (!name) return toast("Give the reward a name");
+    if (!(cost >= 1 && cost <= 1000)) return toast("Cost must be 1 to 1000 points");
+    closeSheet();
+    const r = { id: editing ? editing.id : newId(), name, cost };
+    if (cloud) { cloud.saveReward(r).catch(() => toast("Couldn't save, check your connection")); return; }
+    state.rewards = state.rewards.filter(x => x.id !== r.id).concat(r);
+    save(); renderShop();
+  }
+  function deleteReward() {
+    if (!editing) return;
+    const id = editing.id;
+    closeSheet();
+    if (cloud) { cloud.deleteReward(id); return; }
+    state.rewards = state.rewards.filter(x => x.id !== id);
+    save(); renderShop();
+  }
+
+  let buying = null;
+  function openBuy(r) {
+    buying = r;
+    $("buyTitle").textContent = r.name + "?";
+    $("buyText").textContent = `This spends ${r.cost} of your ${balance()} points. Your stamps stay on the card.`;
+    $("buyOk").textContent = `Spend ${r.cost} ${r.cost === 1 ? "point" : "points"}`;
+    showSheet("buySheet");
+  }
+  function buy() {
+    const r = buying;
+    closeSheet();
+    if (!r || balance() < r.cost) return toast("Not enough points yet");
+    const done = () => { confetti(); toast("Enjoy! 🎁"); };
+    const item = { id: newId(), name: r.name, cost: r.cost, t: Date.now() };
+    if (cloud) { cloud.buy(item).then(done, () => toast("Couldn't save, check your connection")); return; }
+    state.spent.push(item);
+    save(); renderShop(); done();
+  }
+  function refund(s) {
+    if (!confirm(`Undo "${s.name}" and get ${s.cost} points back?`)) return;
+    if (cloud) { cloud.refund(s.id).then(() => toast("Points given back")); return; }
+    state.spent = state.spent.filter(x => x.id !== s.id);
+    save(); renderShop(); toast("Points given back");
   }
 
   /* ---------- Counting numbers ---------- */
@@ -432,15 +612,18 @@
   }
 
   /* ---------- Add / undo / reset ---------- */
-  function openSheet() {
+  function showSheet(id, focusId) {
     $("scrim").classList.add("open");
-    $("sheet").classList.add("open");
+    $(id).classList.add("open");
+    if (focusId) setTimeout(() => $(focusId).focus(), 350);
+  }
+  function openSheet() {
     $("reason").value = "";
-    setTimeout(() => $("reason").focus(), 350);
+    showSheet("sheet", "reason");
   }
   function closeSheet() {
     $("scrim").classList.remove("open");
-    $("sheet").classList.remove("open");
+    document.querySelectorAll(".sheet.open").forEach(s => s.classList.remove("open"));
   }
   function addPoint() {
     const point = { t: Date.now(), why: $("reason").value.trim(), r: Math.round(Math.random() * 30 - 15) };
@@ -464,10 +647,14 @@
   }
 
   $("addBtn").onclick = openSheet;
-  $("cancelBtn").onclick = closeSheet;
+  document.querySelectorAll("[data-close]").forEach(b => b.onclick = closeSheet);
   $("scrim").onclick = closeSheet;
   $("stampBtn").onclick = addPoint;
   $("reason").addEventListener("keydown", e => { if (e.key === "Enter") addPoint(); });
+  $("rewardSave").onclick = saveReward;
+  $("rewardDelete").onclick = deleteReward;
+  ["rewardName", "rewardCost"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") saveReward(); }));
+  $("buyOk").onclick = buy;
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
   $("undoBtn").onclick = () => {
     if (!state.points.length) return;
@@ -475,9 +662,9 @@
     state.points.pop(); save(); render(); toast("Last point removed");
   };
   $("resetBtn").onclick = () => {
-    if (!confirm("Remove all points and start over?")) return;
+    if (!confirm("Remove all points and purchases and start over? Rewards are kept.")) return;
     if (cloud) { cloud.clear(); return; }
-    state.points = []; save(); render();
+    state.points = []; state.spent = []; save(); render();
   };
 
   let toastTimer;
@@ -556,6 +743,8 @@
     const fs = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-firestore.js`);
     const db = fs.getFirestore(initializeApp(FIREBASE_CONFIG));
     const col = fs.collection(db, "points");
+    const rewardsCol = fs.collection(db, "rewards");
+    const spentCol = fs.collection(db, "spent");
 
     cloud = {
       add: (p) => fs.addDoc(col, { t: p.t, why: p.why, r: p.r }),
@@ -563,9 +752,24 @@
       clear: async () => {
         const batch = fs.writeBatch(db);
         state.points.forEach(p => batch.delete(fs.doc(col, p.id)));
+        state.spent.forEach(s => batch.delete(fs.doc(spentCol, s.id)));
         await batch.commit();
       },
+      saveReward: (r) => fs.setDoc(fs.doc(rewardsCol, r.id), { name: r.name, cost: r.cost }),
+      deleteReward: (id) => fs.deleteDoc(fs.doc(rewardsCol, id)),
+      buy: (s) => fs.setDoc(fs.doc(spentCol, s.id), { name: s.name, cost: s.cost, t: s.t }),
+      refund: (id) => fs.deleteDoc(fs.doc(spentCol, id)),
     };
+
+    const onError = () => toast("Couldn't load from the cloud");
+    fs.onSnapshot(rewardsCol, (snap) => {
+      state.rewards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderShop();
+    }, onError);
+    fs.onSnapshot(fs.query(spentCol, fs.orderBy("t")), (snap) => {
+      state.spent = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderShop();
+    }, onError);
 
     // Points saved in this browser before syncing was set up
     const localPoints = state.points;
@@ -588,7 +792,7 @@
       const added = state.points.length > prev;
       render(added);
       if (added) celebrate();
-    }, () => toast("Couldn't load points from the cloud"));
+    }, onError);
   }
 
   if (FIREBASE_CONFIG) {
